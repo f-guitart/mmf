@@ -316,3 +316,11 @@ def assert_iterator_finished(iter):
         pass
     else:
         assert False
+
+
+def get_device():
+    return (
+        f"cuda:{torch.cuda.current_device()}"
+        if torch.cuda.is_available()
+        else torch.device("cpu")
+    )
