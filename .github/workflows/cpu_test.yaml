@@ -70,7 +70,7 @@ jobs:
       shell: bash -l {0}
       run: |
         conda activate mmf
-        pip install --editable .
+        pip install .
 
     - name: Run Unittests
       shell: bash -l {0}
