@@ -112,6 +112,7 @@ class TrainerTrainingLoopMixin(ABC):
                 self._finish_update()
 
                 should_log = False
+                meter_cpu = self.meter
                 if self.num_updates % self.logistics_callback.log_interval == 0:
                     should_log = True
                     # Calculate metrics every log interval for debugging
@@ -121,13 +122,18 @@ class TrainerTrainingLoopMixin(ABC):
                         )
 
                         # Materialize tensors before logging
+                    self.update_meter(combined_report, self.meter)
                     if is_xla():
                         xm.mark_step()
-                        xm._maybe_convert_to_cpu(combined_report)
-                    self.update_meter(combined_report, self.meter)
+                        # Recursion limit exceeds since the following call
+                        # Does not support this data structure
+                        #meter_cpu  = xm._maybe_convert_to_cpu(self.meter)
+                        meter_cpu = self.meter
+                    import pdb
+                    pdb.set_trace()
 
                 self.on_update_end(
-                    report=combined_report, meter=self.meter, should_log=should_log
+                    report=combined_report, meter=meter_cpu, should_log=should_log
                 )
 
                 num_remaining_batches -= num_batches_for_this_update

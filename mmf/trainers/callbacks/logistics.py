@@ -103,6 +103,8 @@ class LogisticsCallback(Callback):
         logger.info(f"Finished run in {self.total_timer.get_time_since_start()}")
 
     def _summarize_report(self, meter, should_print=True, extra=None):
+        import pdb
+        pdb.set_trace()
         if extra is None:
             extra = {}
         if not is_master() and not is_xla():
