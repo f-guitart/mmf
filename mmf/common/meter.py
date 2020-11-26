@@ -34,13 +34,13 @@ class SmoothedValue:
     @property
     def median(self):
         d = torch.tensor(list(self.averaged_value_deque))
-        return d.median().item()
+        return d.median()
 
     @property
     def avg(self):
         d = torch.tensor(list(self.deque))
         s = torch.tensor(list(self.batch_sizes))
-        return d.sum().item() / s.sum().item()
+        return d.sum() / s.sum()
 
     @property
     def global_avg(self):

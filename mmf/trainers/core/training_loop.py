@@ -13,6 +13,12 @@ from mmf.common.sample import to_device
 from mmf.utils.general import clip_gradients
 from torch import Tensor
 from mmf.utils.metsumm import metsumm
+from mmf.utils.distributed import is_xla
+
+try:
+    import torch_xla.core.xla_model as xm
+except ImportError:
+    xm = None
 
 logger = logging.getLogger(__name__)
 
@@ -113,6 +119,11 @@ class TrainerTrainingLoopMixin(ABC):
                         combined_report.metrics = self.metrics(
                             combined_report, combined_report
                         )
+
+                        # Materialize tensors before logging
+                    if is_xla():
+                        xm.mark_step()
+                        xm._maybe_convert_to_cpu(combined_report)
                     self.update_meter(combined_report, self.meter)
 
                 self.on_update_end(
@@ -198,7 +209,6 @@ class TrainerTrainingLoopMixin(ABC):
                 scale=self.scaler.get_scale(),
             )
         if getattr(self.config.training, 'device', 'cuda') == 'xla' and self.config.distributed.world_size > 1: 
-            import torch_xla.core.xla_model as xm 
             #gradients = xm._fetch_gradients(self.optimizer)
             # Assumes no model parallel
             #xm.all_reduce('sum', gradients, scale=1.0 / self.config.distributed.world_size)

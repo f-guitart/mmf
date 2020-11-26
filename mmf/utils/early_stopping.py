@@ -58,8 +58,8 @@ class EarlyStopping:
 
         value = value.global_avg
 
-        if isinstance(value, torch.Tensor):
-            value = value.item()
+        #if isinstance(value, torch.Tensor):
+        #    value = value.item()
 
         if (self.minimize and value < self.best_monitored_value) or (
             not self.minimize and value > self.best_monitored_value

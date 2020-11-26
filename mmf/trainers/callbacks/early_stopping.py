@@ -1,9 +1,13 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 
 from mmf.trainers.callbacks.base import Callback
-from mmf.utils.distributed import broadcast_scalar
+from mmf.utils.distributed import broadcast_scalar, is_master, is_xla
 from mmf.utils.early_stopping import EarlyStopping
 
+try:
+    import torch_xla.core.xla_model as xm
+except ImportError:
+    xm = None
 
 class EarlyStoppingCallback(Callback):
     """Callback for Early Stopping mechanism and checks if it training
@@ -35,5 +39,9 @@ class EarlyStoppingCallback(Callback):
         stop = self.early_stopping(
             self.trainer.num_updates, self.trainer.current_iteration, kwargs["meter"]
         )
-        stop = bool(broadcast_scalar(stop, src=0, device=self.trainer.device))
+        if is_xla(): 
+            stop = stop and is_master()
+            stop = xm.mesh_reduce('early_stop', stop , lambda x: bool(sum(x)))
+        else:
+            stop = bool(broadcast_scalar(stop, src=0, device=self.trainer.device))
         return stop
