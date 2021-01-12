@@ -11,8 +11,8 @@ from mmf.common.registry import registry
 from mmf.common.report import Report
 from mmf.common.sample import to_device
 from mmf.utils.general import clip_gradients
+from  mmf.utils.distributed import is_xla
 from torch import Tensor
-from mmf.utils.metsumm import metsumm
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +72,6 @@ class TrainerTrainingLoopMixin(ABC):
 
             combined_report = None
             num_batches_for_this_update = 1
-
             for idx, batch in enumerate(self.train_loader):
                 if (idx + 1) % self.training_config.update_frequency == 0:
                     combined_report = None
@@ -84,6 +83,7 @@ class TrainerTrainingLoopMixin(ABC):
 
                 # batch execution starts here
                 self.on_batch_start()
+                self.profile("Batch load time")
 
                 report = self.run_training_batch(batch, num_batches_for_this_update)
 
@@ -128,6 +128,7 @@ class TrainerTrainingLoopMixin(ABC):
                     # Validation begin callbacks
                     self.on_validation_start()
 
+                    logger.info("Evaluation time. Running on full validation set...")
                     # Validation and Early stopping
                     # Create a new meter for this case
                     report, meter = self.evaluation_loop(self.val_loader)
@@ -144,6 +145,7 @@ class TrainerTrainingLoopMixin(ABC):
                         torch.cuda.empty_cache()
 
                     if stop is True:
+                        logger.info("Early stopping activated")
                         should_break = True
                 if self.num_updates >= self.max_updates:
                     should_break = True
@@ -197,11 +199,9 @@ class TrainerTrainingLoopMixin(ABC):
                 self.config,
                 scale=self.scaler.get_scale(),
             )
-        if getattr(self.config.training, 'device', 'cuda') == 'xla' and self.config.distributed.world_size > 1: 
-            import torch_xla.core.xla_model as xm 
-            #gradients = xm._fetch_gradients(self.optimizer)
+        if is_xla():
+            import torch_xla.core.xla_model as xm
             # Assumes no model parallel
-            #xm.all_reduce('sum', gradients, scale=1.0 / self.config.distributed.world_size)
             xm.reduce_gradients(self.optimizer)
 
         self.scaler.step(self.optimizer)

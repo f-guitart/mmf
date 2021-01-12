@@ -19,7 +19,6 @@ try:
     import torch_xla.distributed.parallel_loader as pl
 except ImportError:
     xm = None
-    pl = None
 
 ProcessorType = Type[Processor]
 ProcessorDict = Dict[str, ProcessorType]
@@ -167,13 +166,12 @@ def build_dataloader_and_sampler(
         dataset_type = dataset_instance.dataset_type
         shuffle=True
         other_args["sampler"] = torch.utils.data.DistributedSampler(
-                dataset_instance, 
-                num_replicas=xm.xrt_world_size(),
-                rank=xm.get_ordinal(),
-                shuffle=shuffle
-            )
+            dataset_instance,
+            num_replicas=xm.xrt_world_size(),
+            rank=xm.get_ordinal(),
+            shuffle=shuffle
+        )
         other_args.pop("shuffle")
-
 
     loader = torch.utils.data.DataLoader(
         dataset=dataset_instance,

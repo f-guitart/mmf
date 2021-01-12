@@ -46,6 +46,9 @@ class EarlyStopping:
         Returns:
             bool -- Tells whether early stopping occurred or not
         """
+        # There are operations involving synchronization downstream
+        # For XLA those calls must be executed from all cores
+        # Therefore we do return here in case of XLA
         if not is_master() and not is_xla():
             return False
 

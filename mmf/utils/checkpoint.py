@@ -384,13 +384,8 @@ class Checkpoint:
             "git/diff": self.git_repo.git.diff("--no-prefix"),
         }
 
-
-
-    def save_func(self):
-        if is_xla():
-            return xm.save
-        else:
-            return torch.save
+    def save_func(self, *args):
+        return xm.save(*args) if is_xla() else torch.save(*args)
 
     def save(self, update, iteration=None, update_best=False):
         # Only save in main process
@@ -398,12 +393,10 @@ class Checkpoint:
             return
 
         logger.info("Checkpoint save operation started!")
-
         if not iteration:
             iteration = update
 
         ckpt_filepath = os.path.join(self.models_foldername, "model_%d.ckpt" % update)
-
         best_ckpt_filepath = os.path.join(
             self.ckpt_foldername, self.ckpt_prefix + "best.ckpt"
         )
@@ -453,20 +446,19 @@ class Checkpoint:
             git_metadata_dict = self._get_vcs_fields()
             ckpt.update(git_metadata_dict)
 
-        logger.info("Saving  checkpoint")
         with PathManager.open(ckpt_filepath, "wb") as f:
-            self.save_func()(ckpt, f)
+            self.save_func(ckpt, f)
 
         if update_best:
             logger.info("Saving best checkpoint")
             with PathManager.open(best_ckpt_filepath, "wb") as f:
-                self.save_func()(ckpt, f)
+                self.save_func(ckpt, f)
 
         # Save current always
 
         logger.info("Saving Current checkpoint")
         with PathManager.open(current_ckpt_filepath, "wb") as f:
-            self.save_func()(ckpt, f)
+            self.save_func(ckpt, f)
 
         # Remove old checkpoints if max_to_keep is set
         if self.max_to_keep > 0:
@@ -492,4 +484,4 @@ class Checkpoint:
     def finalize(self):
         if is_master() or is_xla():
             with PathManager.open(self.pth_filepath, "wb") as f:
-                self.save_func()(self.trainer.model.state_dict(), f)
+                self.save_func(self.trainer.model.state_dict(), f)

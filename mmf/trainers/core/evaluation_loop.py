@@ -10,7 +10,6 @@ from mmf.common.meter import Meter
 from mmf.common.report import Report
 from mmf.common.sample import to_device
 from mmf.utils.distributed import is_master
-from mmf.utils.metsumm import metsumm
 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +25,6 @@ class TrainerEvaluationLoopMixin(ABC):
             self.model.eval()
             disable_tqdm = not use_tqdm or not is_master()
             combined_report = None
-            metsumm("Before Validation Start:")
 
             for batch in tqdm.tqdm(loader, disable=disable_tqdm):
                 report = self._forward(batch)
@@ -47,7 +45,6 @@ class TrainerEvaluationLoopMixin(ABC):
             combined_report.metrics = self.metrics(combined_report, combined_report)
             self.update_meter(combined_report, meter, eval_mode=True)
             logger.info("Validation Done")
-            metsumm("After Validation Complete")
 
             # enable train mode again
             self.model.train()

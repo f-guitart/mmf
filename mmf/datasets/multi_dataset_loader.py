@@ -187,9 +187,13 @@ class MultiDatasetLoader:
         # Since, this is iterator, we need to return total length == number of batches
         batch_size = get_batch_size()
         # Changed the length to accomadate drop_last == True
-        # drop_last is required if the batch is split intor multiple cores
+        # drop_last is required if the batch is split into multiple cores
         # some of the cores may not have enough examples.
         if is_xla():
+            logging.info(
+                "drop_last is set to True to avoid uneven dimension shapes"
+                "across cores."
+            )
             return (self._total_length) // batch_size
         else:
         # This assumes drop_last=False for all loaders. See also

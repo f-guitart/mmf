@@ -9,7 +9,7 @@ import warnings
 
 import torch
 from torch import distributed as dist
-try: 
+try:
     import torch_xla.core.xla_model as xm
 except ImportError:
     xm = None
@@ -38,7 +38,6 @@ def synchronize(message='sync-workers'):
     dist.barrier()
 
 def is_xla():
-    global _USE_XLA
     return _USE_XLA
 
 def get_rank():
@@ -82,10 +81,10 @@ def broadcast_tensor(tensor, src=0):
         if is_xla():
             tensor = xm.all_to_all(
                     tensor.repeat([world_size,1]),
-                    split_dimension=0, 
-                    concat_dimension=0, 
-                    split_count=world_size)[0] 
-        else: 
+                    split_dimension=0,
+                    concat_dimension=0,
+                    split_count=world_size)[0]
+        else:
             dist.broadcast(tensor, src=0)
 
     return tensor
@@ -128,7 +127,7 @@ def gather_tensor(tensor):
         if is_xla():
             tensor_list = xm.all_gather(tensor)
             tensor_list = tensor_list.view(world_size, *tensor.size())
-        else: 
+        else:
             dist.all_gather(tensor_list, tensor)
         tensor_list = torch.stack(tensor_list, dim=0)
     return tensor_list
@@ -147,11 +146,10 @@ def reduce_dict(dictionary):
         values = torch.stack(values, dim=0)
 
         if is_xla():
-            values = xm.all_reduce('sum',
-                                   [values],
-                                   scale=1.0/world_size
-                                   )[0]
-        else: 
+            values = xm.all_reduce(
+                'sum', [values], scale=1.0/world_size
+            )[0]
+        else:
             dist.reduce(values, dst=0)
             if dist.get_rank() == 0:
                 # only main process gets accumulated, so only divide by
