@@ -65,7 +65,7 @@ class TrainerEvaluationLoopMixin(ABC):
 
                 for batch in tqdm.tqdm(dataloader):
                     prepared_batch = reporter.prepare_batch(batch)
-                    prepared_batch = to_device(prepared_batch, torch.device("cuda"))
+                    prepared_batch = to_device(prepared_batch, self.device)
                     with torch.cuda.amp.autocast(enabled=self.training_config.fp16):
                         model_output = self.model(prepared_batch)
                     report = Report(prepared_batch, model_output)
